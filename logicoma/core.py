@@ -189,6 +189,28 @@ class Task:
         return '<{} {}>'.format(self.__class__.__name__, repr(self.url))
 
 
+class TaskQueue(queue.PriorityQueue):
+    """
+    Priority queue for tasks, which guarantees that two tasks with the same
+    priority are returned in the order they were added
+
+    https://docs.python.org/3/library/heapq.html#priority-queue-implementation-notes
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._lock = threading.Lock()
+        self._counter = 0
+
+    def put(self, task):
+        with self._lock:
+            super().put((-task.priority, self._counter, task))
+            self._counter += 1
+
+    def get(self):
+        return super().get()[-1]
+
+
 class Handler:
     """
     Acts like function, but with attached RE pattern to check if some URL is
@@ -305,7 +327,7 @@ class Crawler:
         self.handler_list = HandlerList(handlers or [])
         self.queue_filter_chain = utils.FilterChain(queue_filters or [])
         self.client = client or Client()
-        self.queue = queue.PriorityQueue()
+        self.queue = TaskQueue()
         self._stop_evt = threading.Event()
 
     def push_task(self, task):
