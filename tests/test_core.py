@@ -29,6 +29,39 @@ class TaskTestCase(unittest.TestCase):
                              ['arg1', 'arg2', 'kwarg1', 'kwarg2'])
 
 
+class TaskQueueTestCase(unittest.TestCase):
+    def test_order(self):
+        """
+        Tasks with the same priority should be ordered by order of ther
+        addition to the queue. For PriorityQueue which uses heap this is not
+        true.
+        """
+        q = core.TaskQueue()
+        correct_order = []
+        for i in range(100):
+            t = core.Task(str(i))
+            q.put(t)
+            correct_order.append(t)
+        for a in correct_order:
+            b = q.get()
+            self.assertEqual(a.url, b.url)
+
+    def test_priority(self):
+        """
+        Test if tasks are sorter by their priority; highest priority number is
+        first in queue.
+        """
+        q = core.TaskQueue()
+        correct_order = []
+        for i in range(100):
+            t = core.Task(str(i), priority=i)
+            q.put(t)
+            correct_order.append(t)
+        for a in reversed(correct_order):
+            b = q.get()
+            self.assertEqual(a.url, b.url)
+
+
 class HandlerTestCase(unittest.TestCase):
     def test_priority_sorting(self):
         """
