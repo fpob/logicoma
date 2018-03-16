@@ -2,7 +2,7 @@
 This module defines core set of classes for the crawler.
 """
 
-__all__ = ['Client', 'Task', 'Crawler']
+__all__ = ['Client', 'Task', 'Stop', 'Abort', 'Crawler']
 
 import logging
 import os
@@ -173,20 +173,38 @@ class Task:
         return [param.name for param in signature.parameters.values()
                 if param.kind == param.POSITIONAL_OR_KEYWORD]
 
-    def is_stop(self):
-        """Returns True if task is stop task."""
-        return self.url is None and self.handler is None
-
-    @classmethod
-    def stop(cls, priority=-1000):
-        """Create stop task."""
-        return cls(None, priority=priority)
-
     def __lt__(self, other):
         return self.priority > other.priority
 
     def __repr__(self):
         return '<{} {}>'.format(self.__class__.__name__, repr(self.url))
+
+
+class Stop(Task):
+    """
+    Task to stop crawling after all other tasks are processed.
+
+    By default it has lowest reasonable priority, so it will be processed after
+    all other tasks.
+    """
+
+    def __init__(self, priority=-9999):
+        super().__init__(None, priority=priority)
+
+    def __repr__(self):
+        return '<{}>'.format(self.__class__.__name__)
+
+
+class Abort(Stop):
+    """
+    Task to stop crawling as soon as possible. Abort is processed as same as
+    stop, difference is just in a priority.
+
+    By default it has highest reasonable priority, so crawling is stopped ASAP.
+    """
+
+    def __init__(self, priority=9999):
+        super().__init__(priority)
 
 
 class TaskQueue(queue.PriorityQueue):
@@ -341,21 +359,25 @@ class Crawler:
             return
         if not isinstance(task, Task):
             raise TypeError('task must be instance of Task')
-        if not task.handler:
-            task.handler = self.handler_list.find_match(task.url)
-        if not task.handler:
-            logger.info('%s empty handler', task)
-            return
-        if self.queue_filter_chain(task):
+
+        if isinstance(task, Stop):
             self.queue.put(task)
             logger.info('%s queued', task)
         else:
-            logger.info('%s filtered out', task)
+            if not task.handler:
+                task.handler = self.handler_list.find_match(task.url)
+            if not task.handler:
+                logger.info('%s empty handler', task)
+            elif self.queue_filter_chain(task):
+                self.queue.put(task)
+                logger.info('%s queued', task)
+            else:
+                logger.info('%s filtered out', task)
 
     def _worker(self):
         while True:
             task = self.queue.get()
-            if task.is_stop() or self._stop_evt.is_set():
+            if isinstance(task, Stop) or self._stop_evt.is_set():
                 break
             try:
                 logger.info('%s started', task)
@@ -394,7 +416,7 @@ class Crawler:
                     task = Task(task, priority=-1)
                 self.push_task(task)
             for t in threads:
-                self.queue.put(Task.stop())
+                self.queue.put(Stop())
                 t.join()
         except KeyboardInterrupt as e:
             self._stop_evt.set()

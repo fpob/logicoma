@@ -156,3 +156,29 @@ class HandlerListTestCase(unittest.TestCase):
 
         self.assertEqual(id(handler_list.find_match('a')), id(h3))
         self.assertIsNone(handler_list.find_match('x'))
+
+
+class CrawlerTestCase(unittest.TestCase):
+    def test_stop(self):
+        """
+        Test if stop task is correctly added to queue. When stop task were
+        added to queue from handler, exception was raised. This was caused
+        because Crawler.push_task() was tried to find handler even for stop
+        task, which has url=None so re.match(pattern, None) raised exception.
+        """
+        crawler = core.Crawler()
+        @crawler.handler(r'.*')
+        def handler():
+            pass
+        crawler.push_task(core.Stop())
+
+    def test_abort(self):
+        """
+        Test adding abort task for the same reason as stop task (see:
+        test_stop).
+        """
+        crawler = core.Crawler()
+        @crawler.handler(r'.*')
+        def handler():
+            pass
+        crawler.push_task(core.Abort())
