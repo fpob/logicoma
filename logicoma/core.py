@@ -55,61 +55,63 @@ class Client:
                 os.makedirs(dirname)
         return filepath
 
-    def request_delay(self, delay=0):
+    def request(self, method, url, delay=0, **kwargs):
         """
-        Method for delaying the requests. Real delay time is maximum from
-        argument `delay` and class attribute `requests_delay`.
+        Do a HTTP request to the given url. Method argument is HTTP method
+        (get, post, ...). All other keyword arguments are passed to
+        requrests.request function.
+
+        Request are delayed when argument `delay` or `self.requests_delay` is
+        greater than zero. Delay time equals `max(delay, self.requests_delay)`
+        seconds.
+
+        See: requests.request(), request_delay()
         """
         delay = max(self.requests_delay, delay)
         if delay > 0:
             logger.debug('Request delay %.1f seconds', delay)
             time.sleep(delay)
+        return self.session.request(url, **kwargs)
 
     def get(self, url, delay=0, **kwargs):
-        """
-        Do a GET request to the given URL.
-
-        See: requests.get, request_delay()
-        """
-        self.request_delay(delay)
-        return self.session.get(url, **kwargs)
+        """Shortcut for request('GET', ...)."""
+        return self.request('GET', url, **kwargs)
 
     def post(self, url, delay=0, **kwargs):
-        """
-        Do a POST request to the given URL.
+        """Shortcut for request('POST', ...)."""
+        return self.request('POST', url, **kwargs)
 
-        See: requests.post, request_delay()
+    def request_page(self, method, url, **kwargs):
         """
-        self.request_delay(delay)
-        return self.session.post(url, **kwargs)
-
-    def get_page(self, url, **kwargs):
-        """
-        Shortcut to do a GET request and parse text response.
+        Shortcut to do a HTTP request and parse text response.
 
         Returns tuple of response and parsed page. If request failed
         (response.ok is False) then tuple of response and None (instead of
         parsed page) is returned.
 
-        See: get()
+        See: request()
         """
-        response = self.get(url, **kwargs)
+        response = self.request(method, url, **kwargs)
         if response.ok:
             return response, bs4.BeautifulSoup(response.text, 'html5lib')
         return response, None
 
-    def download(self, url, filename=None, **kwargs):
+    def get_page(self, url, **kwargs):
+        """Shortcut for request_page('GET', ...)."""
+        return self.request_page('GET', url, **kwargs)
+
+    def download(self, url, filename=None, method='GET', **kwargs):
         """
         Download file and returns its filename and size. If `filename` is None,
         then file name will be extracted from URL.
 
-        See: get()
+        See: request()
         """
         size = 0
         if not filename:
             filename = utils.url_filename(url)
         with open(self.file(filename), 'wb') as f:
-            response = self.get(url, stream=True, **kwargs)
+            response = self.request(method, url, stream=True, **kwargs)
             for chunk in response.iter_content(chunk_size=4096):
                 size += len(chunk)
                 if chunk:
