@@ -71,7 +71,7 @@ class Client:
         if delay > 0:
             logger.debug('Request delay %.1f seconds', delay)
             time.sleep(delay)
-        return self.session.request(url, **kwargs)
+        return self.session.request(method, url, **kwargs)
 
     def get(self, url, delay=0, **kwargs):
         """Shortcut for request('GET', ...)."""
