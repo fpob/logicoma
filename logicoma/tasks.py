@@ -9,9 +9,7 @@ class Download(Task):
     """
     Task for downloading files. Handler argument is ignored.
 
-    data:
-        filename -- name of downloaded file
-        delay -- request delay
+    `data` are passed to Client.download method as **kwargs.
     """
 
     def __init__(self, *args, **kwargs):
@@ -19,5 +17,4 @@ class Download(Task):
         super().__init__(*args, **kwargs)
 
     def download(self, client, url, data):
-        client.download(url, filename=data.get('filename'),
-                        delay=data.get('delay', 0))
+        client.download(url, **data)
