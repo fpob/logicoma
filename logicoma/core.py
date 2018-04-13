@@ -116,6 +116,8 @@ class Client:
                 size += len(chunk)
                 if chunk:
                     f.write(chunk)
+        logger.debug('%s downloaded to %s, size %d KiB',
+                     repr(url), repr(filename), size / 1024)
         return filename, size
 
 
@@ -226,9 +228,12 @@ class TaskQueue(queue.PriorityQueue):
         with self._lock:
             super().put((-task.priority, self._counter, task))
             self._counter += 1
+            logger.info('Qin: %s Qlen=%d', task, self.qsize())
 
     def get(self):
-        return super().get()[-1]
+        task = super().get()[-1]
+        logger.info('Qout: %s Qlen=%d', task, self.qsize())
+        return task
 
 
 class Handler:
@@ -364,7 +369,6 @@ class Crawler:
 
         if isinstance(task, Stop):
             self.queue.put(task)
-            logger.info('%s queued', task)
         else:
             if not task.handler:
                 task.handler = self.handler_list.find_match(task.url)
@@ -372,7 +376,6 @@ class Crawler:
                 logger.info('%s empty handler', task)
             elif self.queue_filter_chain(task):
                 self.queue.put(task)
-                logger.info('%s queued', task)
             else:
                 logger.info('%s filtered out', task)
 
@@ -382,7 +385,6 @@ class Crawler:
             if isinstance(task, Stop) or self._stop_evt.is_set():
                 break
             try:
-                logger.info('%s started', task)
                 next_tasks = task.process(self.client)
                 if next_tasks:
                     for next_task in next_tasks:
