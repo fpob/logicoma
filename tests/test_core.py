@@ -25,8 +25,8 @@ class TaskTestCase(unittest.TestCase):
         def handler(arg1, arg2, kwarg1=None, kwarg2=None):
             pass
         t = core.Task('dummy', handler=handler)
-        self.assertListEqual(t._handler_args(),
-                             ['arg1', 'arg2', 'kwarg1', 'kwarg2'])
+        self.assertSetEqual(t._handler_args(),
+                            {'arg1', 'arg2', 'kwarg1', 'kwarg2'})
 
 
 class TaskQueueTestCase(unittest.TestCase):

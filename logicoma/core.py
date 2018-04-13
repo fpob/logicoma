@@ -161,21 +161,32 @@ class Task:
             else:
                 args['groups'] = None
             args.update(kwargs)
+            if self._handler_is_var_keyword():
+                return self.handler(**args)
             # Pass only args which handler can accept.
             return self.handler(**{k: v for k, v in args.items()
                                    if k in self._handler_args()})
 
+    def _handler_is_var_keyword(self):
+        """Check if handler accepts **kwargs or not."""
+        return any(param.kind == param.VAR_KEYWORD
+                   for param in self.handler_signature.parameters.values())
+
     def _handler_args(self):
         """Returns list of handler's argument names."""
+        return set(param.name
+                   for param in self.handler_signature.parameters.values()
+                   if param.kind == param.POSITIONAL_OR_KEYWORD)
+
+    @property
+    def handler_signature(self):
         if isinstance(self.handler, Handler):
             handler = self.handler.func
         else:
             handler = self.handler
         if inspect.isclass(handler):
             handler = handler.__call__
-        signature = inspect.signature(handler)
-        return [param.name for param in signature.parameters.values()
-                if param.kind == param.POSITIONAL_OR_KEYWORD]
+        return inspect.signature(handler)
 
     def __lt__(self, other):
         return self.priority > other.priority
