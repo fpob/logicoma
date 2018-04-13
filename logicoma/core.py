@@ -73,11 +73,11 @@ class Client:
             time.sleep(delay)
         return self.session.request(method, url, **kwargs)
 
-    def get(self, url, delay=0, **kwargs):
+    def get(self, url, **kwargs):
         """Shortcut for request('GET', ...)."""
         return self.request('GET', url, **kwargs)
 
-    def post(self, url, delay=0, **kwargs):
+    def post(self, url, **kwargs):
         """Shortcut for request('POST', ...)."""
         return self.request('POST', url, **kwargs)
 
