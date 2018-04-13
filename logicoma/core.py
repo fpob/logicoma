@@ -362,7 +362,7 @@ class Crawler:
         """
         if isinstance(task, list):
             for t in task:
-                self.push_task(task)
+                self.push_task(t)
             return
         if not isinstance(task, Task):
             raise TypeError('task must be instance of Task')
