@@ -1,29 +1,43 @@
 from setuptools import setup
-
-import os
+from os import path
 import re
 
-pkg_name = 'logicoma'
 
-__dir__ = os.path.dirname(__file__)
-with open(os.path.join(__dir__, pkg_name, '__init__.py')) as f:
+__dir__ = path.dirname(__file__)
+
+
+with open(path.join(__dir__, 'logicoma', '__init__.py')) as f:
     for line in f:
         if re.match(r'__version__', line):
             exec(line)
             break
 
+with open(path.join(__dir__, 'README.rst')) as f:
+    long_description = f.read()
+
+
 setup(
-    name=pkg_name,
+    name='logicoma',
     version=__version__,
     description='Package for creating simple web crawlers.',
+    long_description=long_description,
     author='Filip Pobořil',
     author_email='tsuki@fpob.eu',
+    url='https://github.com/fpob/logicoma',
+    download_url='https://github.com/fpob/logicoma/archive/v{}.tar.gz'.format(__version__),
     license='MIT',
+    keywords=['Web Crawling'],
+    classifiers=[
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: MIT License',
+        'Natural Language :: English',
+        'Programming Language :: Python :: 3 :: Only',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Topic :: Internet :: WWW/HTTP',
+    ],
     packages=['logicoma'],
-    install_requires=['requests', 'bs4', 'html5lib'],
-    entry_points={
-        'console_scripts': [
-            'logicoma=logicoma.cli:main'
-        ],
-    },
+    install_requires=['requests', 'bs4', 'html5lib']
 )

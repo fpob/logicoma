@@ -73,11 +73,11 @@ class Client:
             time.sleep(delay)
         return self.session.request(method, url, **kwargs)
 
-    def get(self, url, delay=0, **kwargs):
+    def get(self, url, **kwargs):
         """Shortcut for request('GET', ...)."""
         return self.request('GET', url, **kwargs)
 
-    def post(self, url, delay=0, **kwargs):
+    def post(self, url, **kwargs):
         """Shortcut for request('POST', ...)."""
         return self.request('POST', url, **kwargs)
 
@@ -116,6 +116,8 @@ class Client:
                 size += len(chunk)
                 if chunk:
                     f.write(chunk)
+        logger.debug('%s downloaded to %s, size %d KiB',
+                     repr(url), repr(filename), size / 1024)
         return filename, size
 
 
@@ -159,21 +161,32 @@ class Task:
             else:
                 args['groups'] = None
             args.update(kwargs)
+            if self._handler_is_var_keyword():
+                return self.handler(**args)
             # Pass only args which handler can accept.
             return self.handler(**{k: v for k, v in args.items()
                                    if k in self._handler_args()})
 
+    def _handler_is_var_keyword(self):
+        """Check if handler accepts **kwargs or not."""
+        return any(param.kind == param.VAR_KEYWORD
+                   for param in self.handler_signature.parameters.values())
+
     def _handler_args(self):
         """Returns list of handler's argument names."""
+        return set(param.name
+                   for param in self.handler_signature.parameters.values()
+                   if param.kind == param.POSITIONAL_OR_KEYWORD)
+
+    @property
+    def handler_signature(self):
         if isinstance(self.handler, Handler):
             handler = self.handler.func
         else:
             handler = self.handler
         if inspect.isclass(handler):
             handler = handler.__call__
-        signature = inspect.signature(handler)
-        return [param.name for param in signature.parameters.values()
-                if param.kind == param.POSITIONAL_OR_KEYWORD]
+        return inspect.signature(handler)
 
     def __lt__(self, other):
         return self.priority > other.priority
@@ -226,9 +239,12 @@ class TaskQueue(queue.PriorityQueue):
         with self._lock:
             super().put((-task.priority, self._counter, task))
             self._counter += 1
+            logger.info('Qin: %s Qlen=%d', task, self.qsize())
 
     def get(self):
-        return super().get()[-1]
+        task = super().get()[-1]
+        logger.info('Qout: %s Qlen=%d', task, self.qsize())
+        return task
 
 
 class Handler:
@@ -357,14 +373,13 @@ class Crawler:
         """
         if isinstance(task, list):
             for t in task:
-                self.push_task(task)
+                self.push_task(t)
             return
         if not isinstance(task, Task):
             raise TypeError('task must be instance of Task')
 
         if isinstance(task, Stop):
             self.queue.put(task)
-            logger.info('%s queued', task)
         else:
             if not task.handler:
                 task.handler = self.handler_list.find_match(task.url)
@@ -372,7 +387,6 @@ class Crawler:
                 logger.info('%s empty handler', task)
             elif self.queue_filter_chain(task):
                 self.queue.put(task)
-                logger.info('%s queued', task)
             else:
                 logger.info('%s filtered out', task)
 
@@ -382,7 +396,6 @@ class Crawler:
             if isinstance(task, Stop) or self._stop_evt.is_set():
                 break
             try:
-                logger.info('%s started', task)
                 next_tasks = task.process(self.client)
                 if next_tasks:
                     for next_task in next_tasks:
