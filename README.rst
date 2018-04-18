@@ -49,7 +49,7 @@ Installation
 
 Install it using pip ::
 
-    pip3 install yumemi
+    pip3 install logicoma
 
 or clone repository ::
 
