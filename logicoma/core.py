@@ -357,14 +357,16 @@ class Crawler:
         crawler.start()
     """
 
-    def __init__(self, starter=None, handlers=None, queue_filters=None,
-                 client=None):
-        self.starter_fun = starter or (lambda links: links)
-        self.handler_list = HandlerList(handlers or [])
-        self.queue_filter_chain = utils.FilterChain(queue_filters or [])
-        self.client = client or Client()
+    def __init__(self, starter_fun=None):
+        self.handler_list = HandlerList()
+        self.queue_filter_chain = utils.FilterChain()
+        self.client = Client()
         self.queue = TaskQueue()
         self._stop_evt = threading.Event()
+        self.starter()(starter_fun or (lambda links: links))
+
+    def __call__(self, *args, **kwargs):
+        return self.start(*args, **kwargs)
 
     def push_task(self, task):
         """

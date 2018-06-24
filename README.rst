@@ -18,7 +18,9 @@ Download images or even entire galleries from `Imgur <https://imgur.com/>`_:
     import click
     import logicoma
 
-    crawler = logicoma.Crawler()
+    @logicoma.crawler()
+    def crawler(links):
+        return links
 
     @crawler.handler(r'//imgur\.com/')
     def imgur_gallery(client, url):
@@ -36,7 +38,7 @@ Download images or even entire galleries from `Imgur <https://imgur.com/>`_:
     @click.option('-c', '--count', type=int, default=1, help='Number of threads')
     @click.argument('links', nargs=-1)
     def cli(**kwargs):
-        crawler.start(**kwargs)
+        crawler(**kwargs)
 
     if __name__ == '__main__':
         cli()

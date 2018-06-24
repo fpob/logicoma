@@ -2,11 +2,8 @@ import re
 import logicoma
 
 
-crawler = logicoma.Crawler()
-
-
-@crawler.starter()
-def starter():
+@logicoma.crawler()
+def crawler():
     # Generate some duplicit pages.
     for _ in range(100):
         yield 'https://example.com/'
@@ -47,4 +44,4 @@ class DuplicateFilter:
 if __name__ == '__main__':
     # Thanks to filters, `https://example.com/` will be processed just once,
     # and insecure `http` pages will not be processed at all.
-    crawler.start()
+    crawler()

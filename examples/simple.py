@@ -1,12 +1,9 @@
 import logicoma
 
 
-crawler = logicoma.Crawler()
-
-
 # Register starter, function which initialize queue with some tasks.
-@crawler.starter()
-def starter():
+@logicoma.crawler()
+def crawler():
     # Yield initial task. Return value must be list or this function must be
     # iterator. Strings are automatically converted to logicoma.Task. If you
     # need change priority or specify handler, you must return logicoma.Task.
@@ -28,4 +25,4 @@ def googling(client, url, groups):
 
 if __name__ == '__main__':
     # Start crawler.
-    crawler.start()
+    crawler()
