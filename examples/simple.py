@@ -8,6 +8,7 @@ def crawler():
     # iterator. Strings are automatically converted to logicoma.Task. If you
     # need change priority or specify handler, you must return logicoma.Task.
     yield 'https://google.com/?q=example'
+    yield 'https://duckduckgo.com/?q=example'
 
 
 # Register handler for googling. Match groups are passed to handler in `groups`
@@ -21,6 +22,16 @@ def googling(client, url, groups):
     # all requests, downloads, etc...
     #response = client.get(url)
     # ...
+
+
+# New instance is created for every URL.
+@crawler.handler(r'//duckduckgo\.com/\?q=(?P<query>.*)$')
+class DuckDuckGo:
+    def __init__(self):
+        print('DuckDuckGo init')
+
+    def __call__(self, client, url, groups):
+        print('DuckDuckGo search...', groups['query'])
 
 
 if __name__ == '__main__':
