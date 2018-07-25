@@ -12,3 +12,12 @@ install:
 script:
   - flake8 yumemi
   - pytest tests
+
+deploy:
+  provider: pypi
+  user: fpob
+  password:
+    secure: A1JZi0DddENGrylF176g5w3Z+FusWvPgPSMiTye3E0MH0bxjhPGz0xKWF6mErl/hq2Lpj67b5HMPrN831hpHIO+NqwCFewVEOEbWZ2Af98E7rNqLB1BTy6Az0jyWIDifGmukGmUHq/b0Dh5OWH5+jK0KMNhdXPlIKrszMXjBEDZZmUh83R2Gsj8HfHKnjixF38Os0BiLtRTHCQPjb+9GEOE06DQHdEiI4sYcsTpMhsPHcTbFbO6fuCL64WUgxdSSFGnEcqK2BHkXjzqLO0f4+Uv69FGFQXVFLoRreIgdhPmPgm16BnufjgbCiOx1Gz4KKSVb6hgdFtBESCcDiNs34c/zB6oLWlAtYmw9ht6f5ESH0Cz+pPR/SFJUi7E5ElzCYlKdhKhloD8x3IrWU1MyyYukkJerx3uvStYsdg/OcFGIz/0qTAYzxaFNAAfFsiD4kWXsephYrY1ah1tyedqKKaOi85rV/N7sWAxypeMy2q361QZ0rStKrttNeDfleo5lxETnYcEOjItOFbIkoXo+hjei9td2t5xHbAUFfGsa5IbeQewFn3yltCK7+ZtEnBQIhrmPuDhKoG5H67BuFsk2C2UDMCBjV+lhadmv3urwh8HAiI1lUNTXF/6EYQD4glCGOGyR+omRdeY6V0nIe54CAuHvfa8VIFk8RqbyE5mgQqo=
+  on:
+    tags: true
+    python: "3.6"

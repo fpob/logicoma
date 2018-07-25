@@ -1,7 +1,9 @@
 import logicoma
 
 
-crawler = logicoma.Crawler()
+@logicoma.crawler()
+def crawler(urls):
+    return urls
 
 
 # To do something eg. on the facebook we need to be logged in...
@@ -15,4 +17,4 @@ if __name__ == '__main__':
     import browsercookie
     crawler.client = logicoma.Client(cookies=browsercookie.load())
 
-    crawler.start([])
+    crawler([])

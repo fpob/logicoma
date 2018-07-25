@@ -2,7 +2,9 @@ import click
 import logicoma
 
 
-crawler = logicoma.Crawler()
+@logicoma.crawler()
+def crawler(links):
+    return links
 
 
 # Register handler for Imgur galleries. Pattern is matched with `re.search`.
@@ -37,7 +39,7 @@ def imgur_image(url):
 def cli(**kwargs):
     # All *args and **kwargs are via start function passed to starter function.
     # Click command parameters are passed as **kwargs so we use this trick :).
-    crawler.start(**kwargs)
+    crawler(**kwargs)
     # Default starter just takes links argument with list of links and add them
     # to queue.
 
