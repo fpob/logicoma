@@ -1,9 +1,15 @@
 import logicoma
+import click
+import browsercookie
 
 
 @logicoma.crawler()
-def crawler(urls):
-    return urls
+@click.argument('links', nargs=-1)
+def crawler(links):
+    # Recreate crawler client with cookies loaded from browser.
+    crawler.client = logicoma.Client(cookies=browsercookie.load())
+
+    return links
 
 
 # To do something eg. on the facebook we need to be logged in...
@@ -13,8 +19,4 @@ def facebook(client, url):
 
 
 if __name__ == '__main__':
-    # Create crawler client with cookies loaded from browser.
-    import browsercookie
-    crawler.client = logicoma.Client(cookies=browsercookie.load())
-
-    crawler([])
+    crawler()

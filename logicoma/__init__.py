@@ -8,7 +8,3 @@ __version__ = '0.4'
 from .core import *     # noqa: F401,F403
 from .tasks import *    # noqa: F401,F403
 from .utils import *    # noqa: F401,F403
-
-
-def crawler():
-    return Crawler  # noqa: F405

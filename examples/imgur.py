@@ -1,9 +1,12 @@
-import click
 import logicoma
+import click
 
 
 @logicoma.crawler()
+# Crawler has full integration with click...
+@click.argument('links', nargs=-1)
 def crawler(links):
+    # Crawler function have to return initial links, where crawling will start.
     return links
 
 
@@ -33,16 +36,5 @@ def imgur_image(url):
     yield logicoma.Download(url)
 
 
-@click.command()
-@click.option('-c', '--count', type=int, default=1, help='Number of threads')
-@click.argument('links', nargs=-1)
-def cli(**kwargs):
-    # All *args and **kwargs are via start function passed to starter function.
-    # Click command parameters are passed as **kwargs so we use this trick :).
-    crawler(**kwargs)
-    # Default starter just takes links argument with list of links and add them
-    # to queue.
-
-
 if __name__ == '__main__':
-    cli()
+    crawler()

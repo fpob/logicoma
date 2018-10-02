@@ -39,5 +39,5 @@ setup(
         'Topic :: Internet :: WWW/HTTP',
     ],
     packages=['logicoma'],
-    install_requires=['requests', 'bs4', 'html5lib']
+    install_requires=['requests', 'bs4', 'html5lib', 'click']
 )

@@ -2,7 +2,7 @@
 This module defines core set of classes for the crawler.
 """
 
-__all__ = ['Client', 'Task', 'Stop', 'Abort', 'Crawler']
+__all__ = ['Client', 'Task', 'Stop', 'Abort', 'Crawler', 'crawler']
 
 import logging
 import os
@@ -14,6 +14,7 @@ import inspect
 import time
 import requests
 import bs4
+import click
 
 from . import utils
 
@@ -337,36 +338,26 @@ class HandlerList:
         return repr(self.handlers)
 
 
-class Crawler:
+class Crawler(click.Command):
     """
-    Main class to create crawlers.
+    Main crawler class.
 
-    Example::
-
-        crawler = Crawler()
-
-        @crawler.starter()
-        def start():
-            return ['https://google.com/']
-
-        @crawler.handler(r'https?//google.com/.*')
-        def google(client, url):
-            print('Googling...', url)
-            return []  # next tasks to process
-
-        crawler.start()
+    Extends click.Command class - all click decorators may be used...
     """
 
-    def __init__(self, starter_fun=None):
+    def __init__(self, *args, callback=None, **kwargs):
+        super().__init__(*args, callback=self.start, **kwargs)
+        self.starter_fun = callback
         self.handler_list = HandlerList()
         self.queue_filter_chain = utils.FilterChain()
         self.client = Client()
         self.queue = TaskQueue()
         self._stop_evt = threading.Event()
-        self.starter()(starter_fun or (lambda links: links))
 
-    def __call__(self, *args, **kwargs):
-        return self.start(*args, **kwargs)
+    def make_context(self, *args, **kwargs):
+        ctx = super().make_context(*args, **kwargs)
+        ctx.obj = self
+        return ctx
 
     def push_task(self, task):
         """
@@ -410,7 +401,7 @@ class Crawler:
                 logger.error(e, exc_info=True)
             self.queue.task_done()
 
-    def start(self, *args, count=1, **kwargs):
+    def start(self, *args, threads=1, **kwargs):
         """
         Start the crawling in given count of threads.
 
@@ -421,7 +412,8 @@ class Crawler:
         This function blocks until all tasks from starter and handlers will be
         processed.
         """
-        threads = [threading.Thread(target=self._worker) for _ in range(count)]
+        threads = [threading.Thread(target=self._worker)
+                   for _ in range(threads)]
         try:
             for t in threads:
                 t.start()
@@ -442,22 +434,6 @@ class Crawler:
                 if t.is_alive():
                     t.join()
             raise e
-
-    def starter(self):
-        """
-        Decorator to register the starter function (or class). Multiple
-        starters are not allowed, only the last defined one is used.
-
-        If starter is a class then instance is created immediately after
-        registering.
-        """
-        def decorator(func):
-            if inspect.isclass(func):
-                self.starter_fun = func()
-            else:
-                self.starter_fun = func
-            return func
-        return decorator
 
     def handler(self, *args, **kwargs):
         """
@@ -489,3 +465,33 @@ class Crawler:
                 self.queue_filter_chain.append(func)
             return func
         return decorator
+
+
+def crawler(*args, **kwargs):
+    """
+    Creates a new Crawler and uses the decorated function as starter function,
+    which must return or yield initial set of links to start crawling.
+    Decorated function is fully compatible with click - all other click
+    decorators can be used. ::
+
+        @logicoma.crawler()
+        @click.argument('links', nargs=-1)
+        def start(links):
+            yield from links
+
+        @crawler.handler(r'https?//google.com/.*')
+        def google(client, url):
+            print('Googling...', url)
+            return []  # next tasks to process
+
+        # ...
+
+    This decorator automatically adds `--threads` option to specify number of
+    threads used to crawling.
+    """
+    def decorator(f):
+        threads_opt = click.option('--threads', type=int, default=1,
+                                   show_default=True,
+                                   help='Number of starter threads.')
+        return click.command(*args, cls=Crawler, **kwargs)(threads_opt(f))
+    return decorator

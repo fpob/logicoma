@@ -19,6 +19,7 @@ Download images or even entire galleries from `Imgur <https://imgur.com/>`_:
     import logicoma
 
     @logicoma.crawler()
+    @click.argument('links', nargs=-1)
     def crawler(links):
         return links
 
@@ -34,14 +35,8 @@ Download images or even entire galleries from `Imgur <https://imgur.com/>`_:
     def imgur_image(url):
         yield logicoma.Download(url)
 
-    @click.command()
-    @click.option('-c', '--count', type=int, default=1, help='Number of threads')
-    @click.argument('links', nargs=-1)
-    def cli(**kwargs):
-        crawler(**kwargs)
-
     if __name__ == '__main__':
-        cli()
+        crawler()
 
 Exmples with comments are in the `examples` directory.
 
@@ -65,5 +60,4 @@ and install Python package including dependencies ::
 Recommended packages
 ^^^^^^^^^^^^^^^^^^^^
 
-* `click <http://click.pocoo.org/5/>`_ - package for creating command line interfaces
 * `browsercookie <https://pypi.org/project/browsercookie/>`_ - loads cookies used by web browser

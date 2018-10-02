@@ -166,7 +166,9 @@ class CrawlerTestCase(unittest.TestCase):
         because Crawler.push_task() was tried to find handler even for stop
         task, which has url=None so re.match(pattern, None) raised exception.
         """
-        crawler = core.Crawler()
+        @core.crawler()
+        def crawler():
+            pass
         @crawler.handler(r'.*')
         def handler():
             pass
@@ -177,7 +179,9 @@ class CrawlerTestCase(unittest.TestCase):
         Test adding abort task for the same reason as stop task (see:
         test_stop).
         """
-        crawler = core.Crawler()
+        @core.crawler()
+        def crawler():
+            pass
         @crawler.handler(r'.*')
         def handler():
             pass
