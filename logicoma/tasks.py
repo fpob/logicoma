@@ -18,7 +18,7 @@ class Download(Task):
     If retry parameter is greater than 0, then task is re-added to the queue if
     download fails. Re-adding decrements the retry and increments the priority.
 
-    `data` are passed to Client.download method as **kwargs.
+    `data` are passed to Client.download method as \*\*kwargs.
     """
 
     def __init__(self, *args, retry=0, **kwargs):

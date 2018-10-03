@@ -2,7 +2,8 @@
 This module defines core set of classes for the crawler.
 """
 
-__all__ = ['Client', 'Task', 'Stop', 'Abort', 'Crawler', 'crawler']
+__all__ = ['Client', 'Task', 'Stop', 'Abort', 'TaskQueue', 'Handler',
+           'HandlerList', 'Crawler', 'crawler']
 
 import logging
 import os
@@ -23,17 +24,21 @@ logger = logging.getLogger(__name__)
 
 
 class Client:
-    """HTTP client."""
+    """HTTP client.
+
+    If `requests_delay` is greater than 0 then every request is delayed by
+    a specified number of seconds. Delay should be used to reduce the
+    servers or network load.
+
+    :ivar working_dir: working directory
+    :ivar session: :class:`requests.Session` instance
+    :ivar requests_delay: default requests delay
+    """
 
     USER_AGENT = 'Logicoma'
 
     def __init__(self, working_dir='.', headers=None, cookies=None,
                  requests_delay=0):
-        """
-        If `requests_delay` is greater than 0 then every request is delayed by
-        a specified number of seconds. Delay should be used to reduce the
-        servers or network load.
-        """
         self.working_dir = working_dir
         self.session = requests.Session()
         self.session.headers = {'User-Agent': self.USER_AGENT}
@@ -63,10 +68,11 @@ class Client:
         requrests.request function.
 
         Request are delayed when argument `delay` or `self.requests_delay` is
-        greater than zero. Delay time equals `max(delay, self.requests_delay)`
-        seconds.
+        greater than zero. Delay time equals ``max(delay,
+        self.requests_delay)`` seconds.
 
-        See: requests.request(), request_delay()
+        See:
+            :func:`requests.request`
         """
         delay = max(self.requests_delay, delay)
         if delay > 0:
@@ -75,11 +81,11 @@ class Client:
         return self.session.request(method, url, **kwargs)
 
     def get(self, url, **kwargs):
-        """Shortcut for request('GET', ...)."""
+        """Shortcut for :meth:`request` with ``GET`` method."""
         return self.request('GET', url, **kwargs)
 
     def post(self, url, **kwargs):
-        """Shortcut for request('POST', ...)."""
+        """Shortcut for :meth:`request` with ``POST`` method."""
         return self.request('POST', url, **kwargs)
 
     def request_page(self, method, url, **kwargs):
@@ -90,7 +96,8 @@ class Client:
         (response.ok is False) then tuple of response and None (instead of
         parsed page) is returned.
 
-        See: request()
+        See:
+            :meth:`request`
         """
         response = self.request(method, url, **kwargs)
         if response.ok:
@@ -98,15 +105,16 @@ class Client:
         return response, None
 
     def get_page(self, url, **kwargs):
-        """Shortcut for request_page('GET', ...)."""
+        """Shortcut for :meth:`request_page` with ``GET`` method."""
         return self.request_page('GET', url, **kwargs)
 
     def download(self, url, filename=None, method='GET', **kwargs):
         """
-        Download file and returns its filename and size. If `filename` is None,
-        then file name will be extracted from URL.
+        Download file and returns its file name and size. If `filename` is
+        None, then file name will be extracted from URL.
 
-        See: request()
+        See:
+            :meth:`request`
         """
         size = 0
         if not filename:
@@ -138,13 +146,14 @@ class Task:
     Priority is used to sort tasks in queue. Higher number means higher
     priority.
 
-    Handler arguments:
-        client -- instance of Client
-        url -- from Task
-        data -- from Task
-        groups -- If handler is instance of Handler, then matched groups are
-            passed via this argument, otherwise will be None.
-            see: Handler.groups()
+    **Handler arguments**
+
+        | ``client``: instance of Client
+        | ``url``: from :class:`Task`
+        | ``data``: from :class:`Task`
+        | ``groups``: If handler is instance of Handler, then matched groups
+                      are passed via this argument, otherwise will be None.
+                      See: :meth:`Handler.groups`
     """
 
     def __init__(self, url, data={}, handler=None, priority=0):
@@ -171,16 +180,15 @@ class Task:
     def _handler_is_var_keyword(self):
         """Check if handler accepts **kwargs or not."""
         return any(param.kind == param.VAR_KEYWORD
-                   for param in self.handler_signature.parameters.values())
+                   for param in self._handler_signature().parameters.values())
 
     def _handler_args(self):
         """Returns list of handler's argument names."""
         return set(param.name
-                   for param in self.handler_signature.parameters.values()
+                   for param in self._handler_signature().parameters.values()
                    if param.kind == param.POSITIONAL_OR_KEYWORD)
 
-    @property
-    def handler_signature(self):
+    def _handler_signature(self):
         if isinstance(self.handler, Handler):
             handler = self.handler.func
         else:
@@ -237,12 +245,14 @@ class TaskQueue(queue.PriorityQueue):
         self._counter = 0
 
     def put(self, task):
+        """Put an :class:`Task` into the queue."""
         with self._lock:
             super().put((-task.priority, self._counter, task))
             self._counter += 1
             logger.info('Qin: %s Qlen=%d', task, self.qsize())
 
     def get(self):
+        """Remove and return an :class:`Task` from the queue."""
         task = super().get()[-1]
         logger.info('Qout: %s Qlen=%d', task, self.qsize())
         return task
@@ -257,7 +267,7 @@ class Handler:
     multiple handlers. Higher number means higher priority.
 
     Given `func` can be function or callable class. Class instance will be
-    created before call.
+    created before each call.
     """
 
     def __init__(self, func, pattern, flags=0, priority=0):
@@ -269,7 +279,8 @@ class Handler:
         """
         Check if the given URL matches to this handler.
 
-        See: re.search()
+        See:
+            :func:`re.search`
         """
         return bool(self.pattern.search(url))
 
@@ -285,6 +296,7 @@ class Handler:
                                      match.groupdict())
 
     def __call__(self, *args, **kwargs):
+        """Call handler `func`."""
         if inspect.isclass(self.func):
             return self.func()(*args, **kwargs)
         return self.func(*args, **kwargs)
@@ -342,7 +354,9 @@ class Crawler(click.Command):
     """
     Main crawler class.
 
-    Extends click.Command class - all click decorators may be used...
+    Extends :class:`click.Command` class - all click decorators may be used...
+
+    :ivar client: :class:`Client`
     """
 
     def __init__(self, *args, callback=None, **kwargs):
@@ -355,13 +369,17 @@ class Crawler(click.Command):
         self._stop_evt = threading.Event()
 
     def make_context(self, *args, **kwargs):
+        """
+        Creates :class:`click.Context` setting ``self`` to
+        :attr:`click.Context.obj`.
+        """
         ctx = super().make_context(*args, **kwargs)
         ctx.obj = self
         return ctx
 
     def push_task(self, task):
         """
-        Add task to the queue. Task can be instance of Task class or list of
+        Add task to the queue. Task can be instance of :class:`Task` or list of
         tasks. Tasks are ordered by their priority or order of their addition.
         """
         if isinstance(task, list):
@@ -404,13 +422,6 @@ class Crawler(click.Command):
     def start(self, *args, threads=1, **kwargs):
         """
         Start the crawling in given count of threads.
-
-        All arguments except `count` are passed to the starter function.
-        Default starter function accepts only one argument `links` with list of
-        urls to initialize the queue.
-
-        This function blocks until all tasks from starter and handlers will be
-        processed.
         """
         threads = [threading.Thread(target=self._worker)
                    for _ in range(threads)]
@@ -438,7 +449,7 @@ class Crawler(click.Command):
     def handler(self, *args, **kwargs):
         """
         Decorator to register the handler function (or class). Arguments are
-        the same as for the Handler.
+        the same as for the :class:`Handler`.
 
         If handler is class, new instance is created for every task before it's
         processing.
@@ -469,10 +480,10 @@ class Crawler(click.Command):
 
 def crawler(*args, **kwargs):
     """
-    Creates a new Crawler and uses the decorated function as starter function,
-    which must return or yield initial set of links to start crawling.
-    Decorated function is fully compatible with click - all other click
-    decorators can be used. ::
+    Creates a new :class:`Crawler` and uses the decorated function as starter
+    function, which must return or yield initial set of links to start
+    crawling. Decorated function is fully compatible with click - all other
+    click decorators can be used. ::
 
         @logicoma.crawler()
         @click.argument('links', nargs=-1)
