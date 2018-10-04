@@ -3,28 +3,27 @@ from os import path
 import re
 
 
-__dir__ = path.dirname(__file__)
-
-
-with open(path.join(__dir__, 'logicoma', '__init__.py')) as f:
+with open(path.join('logicoma', '__init__.py')) as f:
+    version_cre = re.compile(r'^__version__\s+=\s+[\'"](?P<version>.*)[\'"]$')
     for line in f:
-        if re.match(r'__version__', line):
-            exec(line)
+        match = version_cre.match(line)
+        if match:
+            version = match.group('version')
             break
 
-with open(path.join(__dir__, 'README.rst')) as f:
+with open('README.rst') as f:
     long_description = f.read()
 
 
 setup(
     name='logicoma',
-    version=__version__,
+    version=version,
     description='Package for creating simple web crawlers.',
     long_description=long_description,
     author='Filip Pobořil',
     author_email='tsuki@fpob.eu',
     url='https://github.com/fpob/logicoma',
-    download_url='https://github.com/fpob/logicoma/archive/v{}.tar.gz'.format(__version__),
+    download_url='https://github.com/fpob/logicoma/archive/v{}.tar.gz'.format(version),
     license='MIT',
     keywords=['Web Crawling'],
     classifiers=[
